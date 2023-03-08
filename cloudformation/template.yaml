@@ -219,6 +219,7 @@ Resources:
       LaunchTemplateData:
         InstanceType: t2.nano
         ImageId: ami-050cd642fd83388e4
+        KeyName: nodeserver2
         SecurityGroupIds:
           - !Ref WebappSecurityGroup
         UserData:
@@ -226,7 +227,7 @@ Resources:
             #!/bin/bash
             # Comandos de configuración para iniciar la aplicación Node
             yum update -y
-            yum install -y nodejs npm
+            yum install -y nodejs npm tar
       LaunchTemplateName: NodeAppLaunchTemplate
 
   AutoScalingGroup:

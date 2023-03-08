@@ -4,6 +4,7 @@ on:
   workflow_dispatch: {}
 
 env:
+  APPLICATION_FOLDER: /nodeservice
   APP_NAME: Node Microservice
   DEPLOYMENT_GROUP: ${{ vars.DEPLOYMENT_GROUP }}
   AWS_REGION: ${{ vars.AWS_REGION }}
@@ -28,6 +29,13 @@ jobs:
 
       - name: Build application
         run: npm run build
+
+      - name: Compress artifact
+        run: tar -czvf app.tar.gz
+
+      - name: Upload Artifact to s3
+        working-directory: ${{ env.APPLICATION_FOLDER }}
+        run: aws s3 cp * s3://${{ env.S3_BUCKET }}/
   
   deploy:
     name: Deploy application

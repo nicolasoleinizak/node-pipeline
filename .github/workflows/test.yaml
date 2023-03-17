@@ -28,7 +28,7 @@ jobs:
         run: npm install
 
       - name: Compress artifact
-        run: tar -czvf app.tar.gz
+        run: tar -czvf * app.tar.gz
 
       - name: Upload Artifact to s3
         working-directory: ${{ env.APPLICATION_FOLDER }}

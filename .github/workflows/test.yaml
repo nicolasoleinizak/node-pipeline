@@ -32,9 +32,8 @@ jobs:
         id: compress
         with:
           command: c
-          cwd: ./test
-          files: |
-            ./*
+          cwd: ${{ github.workspace }}
+          files: .
           outPath: app.tar.gz
 
       - name: Upload Artifact to s3
@@ -53,6 +52,7 @@ jobs:
         role-session-name: 'GitHub-Action-Role'
         aws-region: ${{ env.AWS_REGION }}
     - run: |
+        commit_hash=`git rev-parse HEAD`
         aws deploy create-deployment \
           --application-name ${{ env.APP_NAME }} \
           --deployment-group-name ${{ env.DEPLOYMENT_GROUP }} \

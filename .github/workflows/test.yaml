@@ -37,7 +37,7 @@ jobs:
           outPath: app.tar.gz
 
       - name: Upload Artifact to s3
-        working-directory: ${{ env.APPLICATION_FOLDER }}
+        working-directory: ${{ github.workspace }}
         run: aws s3 cp ./app.tar.gz s3://${{ env.S3_BUCKET }}/
   
   deploy:

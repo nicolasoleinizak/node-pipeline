@@ -36,7 +36,7 @@ jobs:
         run: npm install
 
       - name: Zip
-        run: tar --exclude='./.git'  -czf ../app.tar.gz .
+        run: tar --exclude='./.git' -czf ../app.tar.gz .
 
       - name: Upload Artifact to s3
         working-directory: ${{ github.workspace }}

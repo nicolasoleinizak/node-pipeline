@@ -1,7 +1,9 @@
 name: Build and Deploy Node Aplication
 
 on:
-  workflow_dispatch: {}
+  push:
+    branches:
+      - main
 
 env:
   APPLICATION_FOLDER: /nodeservice
@@ -19,6 +21,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: ${{ secrets.IAMROLE_GITHUB }}
+          role-session-name: GitHub-Action-Role
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Setup Node.js
         uses: actions/setup-node@v2
         with:
@@ -27,14 +35,8 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Compress artifact
-        uses: a7ul/tar-action@v1.1.0
-        id: compress
-        with:
-          command: c
-          cwd: ${{ github.workspace }}
-          files: .
-          outPath: app.tar.gz
+      - name: Zip
+        run: tar --exclude='./.git'  -czf ../app.tar.gz .
 
       - name: Upload Artifact to s3
         working-directory: ${{ github.workspace }}

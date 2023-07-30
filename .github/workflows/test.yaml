@@ -7,11 +7,12 @@ on:
 
 env:
   APPLICATION_FOLDER: /nodeservice
-  APP_NAME: Node Microservice
-  DEPLOYMENT_GROUP: ${{ vars.DEPLOYMENT_GROUP }}
+  APP_NAME: CodeDeployAppNameWithASG
+  DEPLOYMENT_GROUP: CodeDeployAppNameWithASG
   AWS_REGION: ${{ vars.AWS_REGION }}
   APP_PORT: ${{ vars.APP_PORT }}
   S3_BUCKET: ${{ vars.S3_BUCKET }}
+  IAMROLE_GITHUB: ${{ secrets.IAMROLE_GITHUB }}
 
 jobs:
   build:
@@ -23,7 +24,7 @@ jobs:
 
       - uses: aws-actions/configure-aws-credentials@v1
         with:
-          role-to-assume: ${{ secrets.IAMROLE_GITHUB }}
+          role-to-assume: ${{ env.IAMROLE_GITHUB }}
           role-session-name: GitHub-Action-Role
           aws-region: ${{ env.AWS_REGION }}
 

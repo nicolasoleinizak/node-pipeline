@@ -13,7 +13,7 @@ permissions:
 env:
   APPLICATION_FOLDER: /nodeservice
   APP_NAME: CodeDeployAppNameWithASG
-  DEPLOYMENT_GROUP: CodeDeployAppNameWithASG
+  DEPLOYMENT_GROUP: CodeDeployGroupName
   AWS_REGION: ${{ vars.AWS_REGION }}
   APP_PORT: ${{ vars.APP_PORT }}
   S3_BUCKET: ${{ vars.S3_BUCKET }}

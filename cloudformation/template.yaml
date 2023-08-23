@@ -225,9 +225,17 @@ Resources:
         UserData:
           Fn::Base64: |
             #!/bin/bash
-            # Comandos de configuración para iniciar la aplicación Node
+
             yum update -y
             yum install -y nodejs npm tar
+
+            wget https://aws-codedeploy-${AWS::Region}.s3.${AWS::Region}.amazonaws.com/latest/install
+            chmod +x ./install
+            ./install auto
+            cd /tmp
+            yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+            systemctl enable amazon-ssm-agent
+            systemctl start amazon-ssm-agent
       LaunchTemplateName: NodeAppLaunchTemplate
 
   AutoScalingGroup:

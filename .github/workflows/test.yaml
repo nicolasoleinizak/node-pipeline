@@ -42,11 +42,11 @@ jobs:
         run: npm install
 
       - name: Zip
-        run: tar --exclude='./.git' -czf ../app.tar.gz .
+        run: tar --exclude='./.git' -czf ./app.tar.gz *
 
       - name: Upload Artifact to s3
         working-directory: ${{ github.workspace }}
-        run: aws s3 cp ../app.tar.gz s3://${{ env.S3_BUCKET }}/
+        run: aws s3 cp ./app.tar.gz s3://${{ env.S3_BUCKET }}/
   
   deploy:
     name: Deploy application
@@ -54,7 +54,10 @@ jobs:
     needs: build
     steps:
     - uses: actions/checkout@v2
+      name: Checkout repository
+
     - uses: aws-actions/configure-aws-credentials@v1
+      name: Create Deployment
       with:
         role-to-assume: ${{ secrets.IAMROLE_GITHUB }}
         role-session-name: 'GitHub-Action-Role'

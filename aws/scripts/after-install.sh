@@ -1,6 +1,6 @@
 # This script is executed after the application is installed on the EC2 instance
 
-S3_BUCKET="s3://pruebas-microservicios-webappdeploymentbucket-kiyqmiamkemq/app.tar.gz"
+S3_BUCKET="s3://pruebas-microservicios-webappdeploymentbucket-yebfhzcwjkqj/app.tar.gz"
 DEST_DIR="/home/ec2-user/nodeserver"
 TAR_FILE="$DEST_DIR/app.tar.gz"
 

@@ -9,8 +9,10 @@ Metadata:
           default: VPC And Subnets Ids
         Parameters:
           - VpcId
-          - Subnet1Id
-          - Subnet2Id
+          - PublicSubnet1Id
+          - PublicSubnet2Id
+          - PrivateSubnet1Id
+          - PrivateSubnet2Id
       - Label:
           default: Autoscaling configurations
         Parameters:
@@ -26,9 +28,13 @@ Metadata:
 Parameters:
   VpcId:
     Type: String
-  Subnet1Id:
+  PublicSubnet1Id:
     Type: String
-  Subnet2Id:
+  PublicSubnet2Id:
+    Type: String
+  PrivateSubnet1Id:
+    Type: String
+  PrivateSubnet2Id:
     Type: String
   AutoScalingGroupMinSize:
     Type: Number
@@ -250,8 +256,8 @@ Resources:
         LaunchTemplateId: !Ref LaunchTemplate
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
       VPCZoneIdentifier:
-        - !Ref Subnet1Id
-        - !Ref Subnet2Id
+        - !Ref PrivateSubnet1Id
+        - !Ref PrivateSubnet2Id
       TargetGroupARNs:
         - !Ref ALBTargetGroup
       Tags:
@@ -272,8 +278,8 @@ Resources:
     Properties:
       Scheme: internet-facing
       Subnets:
-        - !Ref Subnet1Id
-        - !Ref Subnet2Id
+        - !Ref PublicSubnet1Id
+        - !Ref PublicSubnet2Id
       SecurityGroups:
         - !Ref ALBSecurityGroup
   ALBTargetGroup:

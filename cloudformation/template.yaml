@@ -242,6 +242,8 @@ Resources:
                 yum update -y
                 yum install -y nodejs npm tar
 
+                npm install pm2 -g
+
                 mkdir /home/ec2-user/nodeserver
 
                 yum install ruby -y

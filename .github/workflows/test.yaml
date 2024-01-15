@@ -47,8 +47,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Create .env
-        run: echo "PORT=${{ env.APP_PORT }}" > .env
+      - name: Create dotenv file
+        run: |
+          touch .env
+          echo "PORT=${{ env.APP_PORT }}" >> .env
+          cat .env
 
       - name: Zip
         run: tar --exclude='./.git' -czf ./app.tar.gz *

@@ -3,4 +3,4 @@
 # Navigate to the directory where the app.tar.gz file is located
 cd /home/ec2-user/nodeserver/
 
-npm run start
+pm2 start index.js

@@ -1,0 +1,300 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Cloudformation for provisioning services required to setup the
+  CI/CD using GitHub actions and CodeDeploy.
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: VPC And Subnets Ids
+        Parameters:
+          - VpcId
+          - Subnet1Id
+          - Subnet2Id
+      - Label:
+          default: Autoscaling configurations
+        Parameters:
+          - AutoScalingGroupMinSize
+          - AutoScalingGroupMaxSize
+          - AutoScalingGroupDesiredCapacity
+      - Label:
+          default: Github configurations
+        Parameters:
+          - GithubRepoName
+          - ThumbprintList
+
+Parameters:
+  VpcId:
+    Type: String
+  Subnet1Id:
+    Type: String
+  Subnet2Id:
+    Type: String
+  AutoScalingGroupMinSize:
+    Type: Number
+    Default: 2
+    Description: Enter the Min Size for the ASG
+  AutoScalingGroupMaxSize:
+    Type: Number
+    Default: 2
+    Description: Enter the Max Size for the ASG
+  AutoScalingGroupDesiredCapacity:
+    Type: Number
+    Default: 2
+    Description: Enter the Max Size for the ASG
+  ThumbprintList:
+    Type: String
+    Default: 6938fd4d98bab03faadb97b34396831e3780aea1
+    Description: A thumbprint of an Open ID Connector is a SHA1 hash of the public
+      certificate of the host
+  GithubRepoName:
+    Type: String
+    Description: Enter the name of the GitHub repository
+
+Resources:
+  WebappRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      RoleName: WebappRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+                - codedeploy.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: allow-webapp-deployment-bucket-policy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:getObject
+                Resource: !Sub arn:${AWS::Partition}:s3:::${WebappDeploymentBucket}/*
+  IDCProvider:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        - !Ref ThumbprintList
+  GitHubIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      RoleName: CodeDeployRoleforGitHub
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRoleWithWebIdentity
+            Principal:
+              Federated: !Ref IDCProvider
+            Condition:
+              StringLike:
+                token.actions.githubusercontent.com:sub: !Sub repo:${GithubRepoName}:*
+      MaxSessionDuration: 3600
+      Description: Github Actions role
+      Policies:
+
+        - PolicyName: CodeDeployRoleforGitHub-policy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - codedeploy:Get*
+                  - codedeploy:Batch*
+                  - codedeploy:CreateDeployment
+                  - codedeploy:RegisterApplicationRevision
+                  - codedeploy:List*
+                Resource:
+                  - !Sub arn:${AWS::Partition}:codedeploy:*:${AWS::AccountId}:*
+              - Effect: Allow
+                Action:
+                  - s3:putObject
+                Resource: !Sub arn:${AWS::Partition}:s3:::${WebappDeploymentBucket}/*
+
+  WebappApplication:
+    Type: AWS::CodeDeploy::Application
+    Properties:
+      ApplicationName: CodeDeployAppNameWithASG
+  WebappDeploymentGroup:
+    Type: AWS::CodeDeploy::DeploymentGroup
+    Properties:
+      ApplicationName: !Ref WebappApplication
+      ServiceRoleArn: !GetAtt CodeDeployRole.Arn
+      DeploymentConfigName: CodeDeployDefault.OneAtATime
+      DeploymentGroupName: CodeDeployGroupName
+      AutoRollbackConfiguration:
+        Enabled: true
+        Events:
+          - DEPLOYMENT_FAILURE
+          - DEPLOYMENT_STOP_ON_REQUEST
+
+      AutoScalingGroups:
+        - !Ref AutoScalingGroup
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: allow access to ALB from internet
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: '-1'
+          CidrIp: 0.0.0.0/0
+  WebappSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: allow access to Webapp from ALB
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          SourceSecurityGroupId: !Ref ALBSecurityGroup
+      SecurityGroupEgress:
+        - IpProtocol: '-1'
+          CidrIp: 0.0.0.0/0
+  WebappDeploymentBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+  CodeDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codedeploy.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
+      Policies:
+        - PolicyName: allow-autoscaling
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:RunInstances
+                  - ec2:CreateTags
+                  - iam:PassRole
+                Resource:
+                  - !Sub arn:${AWS::Partition}:codedeploy:*:${AWS::AccountId}:*
+
+  WebappInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref WebappRole
+
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        InstanceType: t2.nano
+        ImageId: ami-050cd642fd83388e4
+        SecurityGroupIds:
+          - !Ref WebappSecurityGroup
+        UserData:
+          Fn::Base64: |
+            #!/bin/bash
+            # Comandos de configuración para iniciar la aplicación Node
+            yum update -y
+            yum install -y nodejs npm
+      LaunchTemplateName: NodeAppLaunchTemplate
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      HealthCheckType: ELB
+      HealthCheckGracePeriod: 300
+      DesiredCapacity: !Ref AutoScalingGroupDesiredCapacity
+      MinSize: !Ref AutoScalingGroupMinSize
+      MaxSize: !Ref AutoScalingGroupMaxSize
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      VPCZoneIdentifier:
+        - !Ref Subnet1Id
+        - !Ref Subnet2Id
+      TargetGroupARNs:
+        - !Ref ALBTargetGroup
+      Tags:
+        - Key: Name
+          Value: webapp-example
+          PropagateAtLaunch: true
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ALBTargetGroup
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 3000
+      Protocol: HTTP
+  ApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: internet-facing
+      Subnets:
+        - !Ref Subnet1Id
+        - !Ref Subnet2Id
+      SecurityGroups:
+        - !Ref ALBSecurityGroup
+  ALBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      UnhealthyThresholdCount: 2
+      HealthyThresholdCount: 2
+      HealthCheckPath: /
+      Port: 3000
+      Protocol: HTTP
+      VpcId: !Ref VpcId
+
+Outputs:
+  ServiceURL:
+    Description: Webapp URL
+    Value: !Join
+      - ''
+      - - http://
+        - !GetAtt ApplicationLoadBalancer.DNSName
+        - '/'
+  DeploymentGroup:
+    Description: Webapp Deployment Group
+    Value: !Ref WebappDeploymentGroup
+  DeploymentBucket:
+    Description: Deployment bucket
+    Value: !Ref WebappDeploymentBucket
+  ApplicationName:
+    Description: CodeDeploy Application name
+    Value: !Ref WebappApplication
+  GithubIAMRoleArn:
+    Description: IAM role for GitHub
+    Value: !GetAtt GitHubIAMRole.Arn

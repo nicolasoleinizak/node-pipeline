@@ -229,19 +229,24 @@ Resources:
         SecurityGroupIds:
           - !Ref WebappSecurityGroup
         UserData:
-          Fn::Base64: |
-            #!/bin/bash
+          "Fn::Base64": 
+            !Sub |
+              #!/bin/bash
 
-            yum update -y
-            yum install -y nodejs npm tar
+              yum update -y
+              yum install -y nodejs npm tar
 
-            wget https://aws-codedeploy-${AWS::Region}.s3.${AWS::Region}.amazonaws.com/latest/install
-            chmod +x ./install
-            ./install auto
-            cd /tmp
-            yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
-            systemctl enable amazon-ssm-agent
-            systemctl start amazon-ssm-agent
+              mkdir /home/ec2-user/nodeserver
+
+              yum install ruby -y
+
+              wget https://aws-codedeploy-${AWS::Region}.s3.${AWS::Region}.amazonaws.com/latest/install
+              chmod +x ./install
+              ./install auto
+              cd /tmp
+              yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+              systemctl enable amazon-ssm-agent
+              systemctl start amazon-ssm-agent
       LaunchTemplateName: NodeAppLaunchTemplate
 
   AutoScalingGroup:

@@ -5,6 +5,12 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'README.md'
+      - 'cloudformation/*'
+      - '.github/workflows/*'
+      - 'aws/**'
+      - 'appspec.yml'
       
 permissions:
   id-token: write

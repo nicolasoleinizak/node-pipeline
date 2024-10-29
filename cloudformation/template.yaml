@@ -170,6 +170,10 @@ Resources:
           FromPort: 3000
           ToPort: 3000
           SourceSecurityGroupId: !Ref ALBSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
         - IpProtocol: '-1'
           CidrIp: 0.0.0.0/0
@@ -226,34 +230,36 @@ Resources:
         InstanceType: t2.nano
         ImageId: ami-050cd642fd83388e4
         KeyName: nodeserver2
+        IamInstanceProfile: 
+          Arn: !GetAtt WebappInstanceProfile.Arn
         SecurityGroupIds:
           - !Ref WebappSecurityGroup
         UserData:
           "Fn::Base64": 
             !Sub |
-              #!/bin/bash
+                #!/bin/bash
 
-              yum update -y
-              yum install -y nodejs npm tar
+                yum update -y
+                yum install -y nodejs npm tar
 
-              mkdir /home/ec2-user/nodeserver
+                mkdir /home/ec2-user/nodeserver
 
-              yum install ruby -y
+                yum install ruby -y
 
-              wget https://aws-codedeploy-${AWS::Region}.s3.${AWS::Region}.amazonaws.com/latest/install
-              chmod +x ./install
-              ./install auto
-              cd /tmp
-              yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
-              systemctl enable amazon-ssm-agent
-              systemctl start amazon-ssm-agent
+                wget https://aws-codedeploy-${AWS::Region}.s3.${AWS::Region}.amazonaws.com/latest/install
+                chmod +x ./install
+                ./install auto
+                cd /tmp
+                yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+                systemctl enable amazon-ssm-agent
+                systemctl start amazon-ssm-agent
       LaunchTemplateName: NodeAppLaunchTemplate
 
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       HealthCheckType: ELB
-      HealthCheckGracePeriod: 300
+      HealthCheckGracePeriod: 600
       DesiredCapacity: !Ref AutoScalingGroupDesiredCapacity
       MinSize: !Ref AutoScalingGroupMinSize
       MaxSize: !Ref AutoScalingGroupMaxSize
